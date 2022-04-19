@@ -1,0 +1,4 @@
+weights/*
+without_end_inference/*
+dfdc_data
+**.pyc

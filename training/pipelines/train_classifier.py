@@ -13,6 +13,7 @@ from training.tools.config import load_config
 from training.tools.utils import create_optimizer, AverageMeter
 from training.transforms.albu import IsotropicResize
 from training.zoo import classifiers
+from training.zoo.end import Hook, abs_regu
 
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
@@ -329,6 +330,21 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
             real_loss = topk(real_loss, k=min(ohem, real_loss.size(0)), sorted=False)[0].mean()
 
         loss = (fake_loss + real_loss) / 2
+
+        # Add EnD Loss
+        # Only Run End Loss if Hooked Layer is available in model 
+        # TODO: We need to add skin_tag_labels to the train_data_loader
+        hook_fn = getattr(model, "get_hooked_layer", None)
+        if callable(hook_fn):
+
+            hook = Hook(model.get_hooked_layer, backward=False)
+            alpha = conf["end"]["alpha"]
+            beta = conf["end"]["beta"]
+            skin_tag_labels = sample["skin_tag_labels"].cuda()
+            end_abs = abs_regu(hook, labels, skin_tag_labels, alpha, beta)
+
+            loss += end_abs
+
         losses.update(loss.item(), imgs.size(0))
         fake_losses.update(0 if fake_loss == 0 else fake_loss.item(), imgs.size(0))
         real_losses.update(0 if real_loss == 0 else real_loss.item(), imgs.size(0))

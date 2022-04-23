@@ -8,47 +8,49 @@ from torch import nn
 from torch.nn.modules.dropout import Dropout
 from torch.nn.modules.linear import Linear
 from torch.nn.modules.pooling import AdaptiveAvgPool2d
+from .end import pattern_norm
+
 
 encoder_params = {
     "tf_efficientnet_b3_ns": {
         "features": 1536,
-        "init_op": partial(tf_efficientnet_b3_ns, pretrained=True, drop_path_rate=0.2)
+        "init_op": tf_efficientnet_b3_ns(pretrained=True, drop_path_rate=0.2)
     },
     "tf_efficientnet_b2_ns": {
         "features": 1408,
-        "init_op": partial(tf_efficientnet_b2_ns, pretrained=False, drop_path_rate=0.2)
+        "init_op": tf_efficientnet_b2_ns(pretrained=False, drop_path_rate=0.2)
     },
     "tf_efficientnet_b4_ns": {
         "features": 1792,
-        "init_op": partial(tf_efficientnet_b4_ns, pretrained=True, drop_path_rate=0.5)
+        "init_op": tf_efficientnet_b4_ns(pretrained=True, drop_path_rate=0.5)
     },
     "tf_efficientnet_b5_ns": {
         "features": 2048,
-        "init_op": partial(tf_efficientnet_b5_ns, pretrained=True, drop_path_rate=0.2)
+        "init_op": tf_efficientnet_b5_ns(pretrained=True, drop_path_rate=0.2)
     },
     "tf_efficientnet_b4_ns_03d": {
         "features": 1792,
-        "init_op": partial(tf_efficientnet_b4_ns, pretrained=True, drop_path_rate=0.3)
+        "init_op": tf_efficientnet_b4_ns(pretrained=True, drop_path_rate=0.3)
     },
     "tf_efficientnet_b5_ns_03d": {
         "features": 2048,
-        "init_op": partial(tf_efficientnet_b5_ns, pretrained=True, drop_path_rate=0.3)
+        "init_op": tf_efficientnet_b5_ns(pretrained=True, drop_path_rate=0.3)
     },
     "tf_efficientnet_b5_ns_04d": {
         "features": 2048,
-        "init_op": partial(tf_efficientnet_b5_ns, pretrained=True, drop_path_rate=0.4)
+        "init_op": tf_efficientnet_b5_ns(pretrained=True, drop_path_rate=0.4)
     },
     "tf_efficientnet_b6_ns": {
         "features": 2304,
-        "init_op": partial(tf_efficientnet_b6_ns, pretrained=True, drop_path_rate=0.2)
+        "init_op": tf_efficientnet_b6_ns(pretrained=True, drop_path_rate=0.2)
     },
     "tf_efficientnet_b7_ns": {
         "features": 2560,
-        "init_op": partial(tf_efficientnet_b7_ns, pretrained=True, drop_path_rate=0.2)
+        "init_op": tf_efficientnet_b7_ns(pretrained=True, drop_path_rate=0.2)
     },
     "tf_efficientnet_b6_ns_04d": {
         "features": 2304,
-        "init_op": partial(tf_efficientnet_b6_ns, pretrained=True, drop_path_rate=0.4)
+        "init_op": tf_efficientnet_b6_ns(pretrained=True, drop_path_rate=0.4)
     },
 }
 
@@ -170,3 +172,60 @@ class DeepFakeClassifierGWAP(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         return x
+
+
+class DeepFakeClassifierWithSimpleEnD(nn.Module):
+    
+    # Import the partial classifier as provider
+    # Add the EnD Pattern Norm Layer after the Avg Pool Layer between
+    # the encoder output and dropout layers
+    # Minimally invasive
+
+    def __init__(self, encoder, dropout_rate=0.0) -> None:
+        super().__init__()
+        self.encoder = encoder_params[encoder]["init_op"]
+        self.avg_pool = AdaptiveAvgPool2d((1, , 1))
+        self.pattern_norm = pattern_norm()
+        self.dropout = Dropout(dropout_rate)
+        self.fc = Linear(encoder_params[encoder]["features"], 1)
+
+    def forward(self, x):
+        x = self.encoder.forward_features(x)
+        x = self.avg_pool(x).flatten(1)
+        x = self.pattern_norm(x)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+    def get_hooked_layer(self):
+        return self.pattern_norm
+
+class DeepFakeClassifierWithEncoderEnD(nn.Module):
+
+    # Import the classifier without partial
+    # Edit the computational graph for the global pool of the encoder
+    # add the EnD Pattern Norm Layer after the Pooling Layer and before
+    # it passes through the Encoder Linear Layer
+
+    def __init__(self, encoder, dropout_rate=0.0) -> None:
+        super().__init__()
+        self.encoder = encoder_params[encoder]["init_op"]
+        self.encoder.global_pool = nn.Sequential(
+                self.encoder.global_pool,
+                pattern_norm()
+        )
+
+        self.avg_pool = AdaptiveAvgPool2d((1, 1))
+        self.dropout = Dropout(dropout_rate)
+        self.fc = Linear(encoder_params[encoder]["features"], 1)
+        
+    def forward(self, x):
+        x = self.encoder.forward_features(x)
+        x = self.avg_pool(x).flatten(1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+    def get_hooked_layer(self):
+        return self.encoder.global_pool
+

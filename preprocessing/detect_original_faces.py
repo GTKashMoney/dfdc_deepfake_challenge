@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from preprocessing import face_detector, VideoDataset
 from preprocessing.face_detector import VideoFaceDetector
-from preprocessing.utils import get_original_video_paths
+from preprocessing.utils import get_all_video_paths
 
 
 def parse_args():
@@ -33,7 +33,7 @@ def process_videos(videos, root_dir, detector_cls: Type[VideoFaceDetector]):
         for j, frames in enumerate(batches):
             result.update({int(j * detector._batch_size) + i : b for i, b in zip(indices, detector._detect_faces(frames))})
         id = os.path.splitext(os.path.basename(video))[0]
-        out_dir = os.path.join(root_dir, "boxes")
+        out_dir = os.path.join(root_dir, "boxes2")
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, "{}.json".format(id)), "w") as f:
             json.dump(result, f)
@@ -43,7 +43,7 @@ def process_videos(videos, root_dir, detector_cls: Type[VideoFaceDetector]):
 
 def main():
     args = parse_args()
-    originals = get_original_video_paths(args.root_dir)
+    originals = get_all_video_paths(args.root_dir)
     process_videos(originals, args.root_dir, args.detector_type)
 
 

@@ -63,7 +63,7 @@ def get_video_paths(root_dir):
             original = v.get("original", None)
             if not original:
                 original = k
-            bboxes_path = os.path.join(root_dir, "boxes", original[:-4] + ".json")
+            bboxes_path = os.path.join(root_dir, "boxes2", original[:-4] + ".json")
             if not os.path.exists(bboxes_path):
                 continue
             paths.append((os.path.join(dir, k), bboxes_path))

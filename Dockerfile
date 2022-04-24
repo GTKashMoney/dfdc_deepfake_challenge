@@ -32,6 +32,7 @@ RUN pip install dlib
 RUN pip install facenet-pytorch
 RUN pip install albumentations==1.0.0 timm==0.4.12 pytorch_toolbelt tensorboardx
 RUN pip install cython jupyter  jupyterlab ipykernel matplotlib tqdm pandas
+RUN pip install sklearn
 
 # download pretraned Imagenet models
 RUN apt install wget

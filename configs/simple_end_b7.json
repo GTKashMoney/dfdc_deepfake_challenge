@@ -26,9 +26,12 @@
         "BinaryCrossentropy": 1
     },
     "end": {
-        "alpha": 0.0,
-        "beta": 0.0
+        "alpha": 0.25,
+        "beta": 0.75
+    },
+    "load_pretrained": {
+        "load": true,
+        "path": "weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23"
     }
 }
-
 

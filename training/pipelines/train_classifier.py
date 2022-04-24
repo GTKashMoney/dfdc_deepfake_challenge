@@ -111,6 +111,11 @@ def main():
     conf = load_config(args.config)
     model = classifiers.__dict__[conf['network']](encoder=conf['encoder'])
 
+    if conf.get("load_classifier", {"load": False})["load"]:
+        checkpoint = torch.load(conf["load_classifier"]["path"], map_location="cpu")
+        state_dict = checkpoint.get("state_dict", checkpoint)
+        model.load_state_dict({re.sub("^module.", "", k): v for k, v in state_dict.items()}, strict=True)
+
     model = model.cuda()
     if args.distributed:
         model = convert_syncbn_model(model)
@@ -340,8 +345,8 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
             hook = Hook(model.get_hooked_layer, backward=False)
             alpha = conf["end"]["alpha"]
             beta = conf["end"]["beta"]
-            skin_tag_labels = sample["skin_tag_labels"].cuda()
-            end_abs = abs_regu(hook, labels, skin_tag_labels, alpha, beta)
+            skin_tag = sample["skin_tag"].cuda()
+            end_abs = abs_regu(hook, labels, skin_tag, alpha, beta)
 
             loss += end_abs
 

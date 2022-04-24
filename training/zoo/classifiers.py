@@ -184,7 +184,7 @@ class DeepFakeClassifierWithSimpleEnD(nn.Module):
     def __init__(self, encoder, dropout_rate=0.0) -> None:
         super().__init__()
         self.encoder = encoder_params[encoder]["init_op"]
-        self.avg_pool = AdaptiveAvgPool2d((1, , 1))
+        self.avg_pool = AdaptiveAvgPool2d((1, 1))
         self.pattern_norm = pattern_norm()
         self.dropout = Dropout(dropout_rate)
         self.fc = Linear(encoder_params[encoder]["features"], 1)

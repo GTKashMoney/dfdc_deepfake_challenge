@@ -286,22 +286,22 @@ class DeepFakeClassifierDataset(Dataset):
                 #                 image *= np.expand_dims(bitmap_msk, axis=-1)
                 #                 break
                 #             current_try += 1
-                # if self.mode == "train" and self.padding_part > 3:
-                #     image = change_padding(image, self.padding_part)
+                if self.mode == "train" and self.padding_part > 3:
+                    image = change_padding(image, self.padding_part)
                 valid_label = label < 0.5
                 valid_label = 1 if valid_label else 0
                 rotation = 0
-                # if self.transforms:
-                #     data = self.transforms(image=image, mask=mask)
-                #     image = data["image"]
-                #     mask = data["mask"]
-                # if self.mode == "train" and self.hardcore and self.rotation:
-                #     # landmark_path = os.path.join(self.data_root, "landmarks", ori_video, img_file[:-4] + ".npy")
-                #     dropout = 0.8 if label > 0.5 else 0.6
-                #     # if self.rotation:
-                #     #     dropout *= 0.7
-                #     # elif random.random() < dropout:
-                #     #     blackout_random(image, mask, label)
+                if self.transforms:
+                    data = self.transforms(image=image, mask=mask)
+                    image = data["image"]
+                    mask = data["mask"]
+                if self.mode == "train" and self.hardcore and self.rotation:
+                    # landmark_path = os.path.join(self.data_root, "landmarks", ori_video, img_file[:-4] + ".npy")
+                    dropout = 0.8 if label > 0.5 else 0.6
+                    if self.rotation:
+                        dropout *= 0.7
+                    elif random.random() < dropout:
+                        blackout_random(image, mask, label)
 
                 #
                 # os.makedirs("../images", exist_ok=True)
@@ -373,6 +373,10 @@ class DeepFakeClassifierDataset(Dataset):
         real = rows[rows["label"] == 0]
         fakes = rows[rows["label"] == 1]
         num_real = real["video"].count()
+        num_fakes = fakes["video"].count()
         if self.mode == "train":
-            fakes = fakes.sample(n=num_real, replace=False, random_state=seed)
+            if num_fakes >= num_real:
+                fakes = fakes.sample(n=num_real, replace=False, random_state=seed)
+            else:
+                real = real.sample(n=num_fakes, replace=False, random_state=seed)
         return pd.concat([real, fakes])

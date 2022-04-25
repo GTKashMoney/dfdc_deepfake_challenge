@@ -303,6 +303,7 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
     losses = AverageMeter()
     fake_losses = AverageMeter()
     real_losses = AverageMeter()
+    end_losses = AverageMeter()
     max_iters = conf["batches_per_epoch"]
     print("training epoch {}".format(current_epoch))
     model.train()
@@ -340,15 +341,19 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
         # Only Run End Loss if Hooked Layer is available in model 
         # TODO: We need to add skin_tag_labels to the train_data_loader
         hook_fn = getattr(model, "get_hooked_layer", None)
-        if callable(hook_fn):
-
-            hook = Hook(model.get_hooked_layer, backward=False)
+        # print("EnD Hooked Layer", callable(hook_fn))
+        # if callable(hook_fn):
+        if conf.get("end", None) is not None:
+            print("get end loss")
+            hook = Hook(model.module.pattern_norm, backward=False)
+            print(hook)
             alpha = conf["end"]["alpha"]
             beta = conf["end"]["beta"]
             skin_tag = sample["skin_tag"].cuda()
             end_abs = abs_regu(hook, labels, skin_tag, alpha, beta)
 
             loss += end_abs
+            end_losses.update(end_abs.item(), imgs.size(0))
 
         losses.update(loss.item(), imgs.size(0))
         fake_losses.update(0 if fake_loss == 0 else fake_loss.item(), imgs.size(0))
@@ -356,7 +361,7 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
 
         optimizer.zero_grad()
         pbar.set_postfix({"lr": float(scheduler.get_lr()[-1]), "epoch": current_epoch, "loss": losses.avg,
-                          "fake_loss": fake_losses.avg, "real_loss": real_losses.avg})
+                          "fake_loss": fake_losses.avg, "real_loss": real_losses.avg, "end_loss": end_losses.avg})
 
         if conf['fp16']:
             with amp.scale_loss(loss, optimizer) as scaled_loss:

@@ -17,13 +17,16 @@ class pattern_norm(torch.nn.Module):
 
 class Hook():
     def __init__(self, module, backward=False):
+        print("init hook")
         self.module = module
         if backward == False:
+            print("registering module")
             self.hook = module.register_forward_hook(self.hook_fn)
         else:
             self.hook = module.register_backward_hook(self.hook_fn)
 
     def hook_fn(self, module, input, output):
+        print("hook fn")
         self.input = input
         self.output = output
 

@@ -287,7 +287,7 @@ def validate(net, data_loader, prefix=""):
     for vid, score in probs.items():
         score = np.array(score)
         lbl = targets[vid]
-        tag = skin_tags[vid]
+        tag = tags[vid]
 
         score = np.mean(score)
         lbl = np.mean(lbl)
@@ -299,6 +299,7 @@ def validate(net, data_loader, prefix=""):
     y = np.array(data_y)
     x = np.array(data_x)
     data_st = np.array(data_st)
+    # print("data_st", data_st)
 
     tags_classes = np.unique(data_st)
     tags_dict = {i: 0 for i in tags_classes}
@@ -309,12 +310,20 @@ def validate(net, data_loader, prefix=""):
         fake_idx = np.logical_and(y > 0.1, tag_idx)
         real_idx = np.logical_and(y < 0.1, tag_idx)
 
-        fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
-        real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
-        print("{}fake_loss".format(prefix), fake_loss)
-        print("{}real_loss".format(prefix), real_loss)
+        fake_loss = np.nan
+        real_loss = np.nan
+        # print("y", y)
+        # print("x", x)
+        # print("real_idx", real_idx)
+        if np.any(fake_idx):
+            fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
+        if np.any(real_idx):
+            real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
+        # print("{}fake_loss".format(prefix), fake_loss)
+        # print("{}real_loss".format(prefix), real_loss)
 
-        tags_dict[k] = (fake_loss + real_loss) / 2
+        loss = np.array([real_loss, fake_loss])
+        tags_dict[k] = np.nanmean(loss)
 
     # Max Loss - Min Loss
     max_loss = max(list(tags_dict.values()))
@@ -322,7 +331,7 @@ def validate(net, data_loader, prefix=""):
     print(f"Max Loss: {max_loss}, Min Loss: {min_loss}")
     net_loss = max_loss - min_loss
 
-    return net_loss, probs, targets
+    return max_loss, probs, targets
 
 
 def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, train_data_loader, summary_writer, conf,

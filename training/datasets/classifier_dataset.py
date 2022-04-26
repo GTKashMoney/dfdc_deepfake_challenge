@@ -313,7 +313,7 @@ class DeepFakeClassifierDataset(Dataset):
 
                 image = img_to_tensor(image, self.normalize)
                 return {"image": image, "labels": np.array((label,)), "img_name": os.path.join(video, img_file),
-                        "valid": valid_label, "rotations": rotation, "skin_tag": skin_tag}
+                        "valid": valid_label, "rotations": rotation, "skin_tag": int(skin_tag)}
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
                 print("Broken image", os.path.join(self.data_root, self.crops_dir, video, img_file))

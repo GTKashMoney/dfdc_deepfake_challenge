@@ -15,4 +15,6 @@ NUM_GPUS=$2
 #  --distributed --config configs/b7.json --freeze-epochs 0 --test_every 1 --opt-level O1 --label-smoothing 0.01 --folds-csv folds.csv  --fold 0 --seed 888 --data-dir $ROOT_DIR --prefix b7_888_ > logs/b7_888
 
 python -u -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port 9901 training/pipelines/train_classifier.py \
- --distributed --config configs/simple_end_b7.json --freeze-epochs 0 --test_every 1 --opt-level O1 --label-smoothing 0.01 --resume $ROOT_DIR/weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23 --folds-csv $ROOT_DIR/folds.csv  --fold 0 --seed 999 --data-dir $ROOT_DIR --prefix b7_999_ > logs/b7_999
+ --distributed --config configs/simple_end_b7.json --freeze-epochs 0 --test_every 1 --opt-level O1 --label-smoothing 0.01 \
+ --resume $ROOT_DIR/weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23 --folds-csv $ROOT_DIR/folds.csv  --fold 0 \
+ --seed 999 --zero-score --data-dir $ROOT_DIR --prefix b7_999_

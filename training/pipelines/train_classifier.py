@@ -310,6 +310,16 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
     pbar = tqdm(enumerate(train_data_loader), total=max_iters, desc="Epoch {}".format(current_epoch), ncols=0)
     if conf["optimizer"]["schedule"]["mode"] == "epoch":
         scheduler.step(current_epoch)
+    # Add EnD Loss
+    # Only Run End Loss if Hooked Layer is available in model 
+    # TODO: We need to add skin_tag_labels to the train_data_loader
+    hook_fn = getattr(model, "get_hooked_layer", None)
+    # print("EnD Hooked Layer", callable(hook_fn))
+    # if callable(hook_fn):
+    if conf.get("end", None) is not None:
+        # print("get end loss")
+        hook = Hook(model.module.get_hooked_layer(), backward=False)
+        # print(hook)
     for i, sample in pbar:
         imgs = sample["image"].cuda()
         labels = sample["labels"].cuda().float()
@@ -337,19 +347,11 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
 
         loss = (fake_loss + real_loss) / 2
 
-        # Add EnD Loss
-        # Only Run End Loss if Hooked Layer is available in model 
-        # TODO: We need to add skin_tag_labels to the train_data_loader
-        hook_fn = getattr(model, "get_hooked_layer", None)
-        # print("EnD Hooked Layer", callable(hook_fn))
-        # if callable(hook_fn):
         if conf.get("end", None) is not None:
-            print("get end loss")
-            hook = Hook(model.module.pattern_norm, backward=False)
-            print(hook)
             alpha = conf["end"]["alpha"]
             beta = conf["end"]["beta"]
             skin_tag = sample["skin_tag"].cuda()
+            # print("skin tag", skin_tag)
             end_abs = abs_regu(hook, labels, skin_tag, alpha, beta)
 
             loss += end_abs

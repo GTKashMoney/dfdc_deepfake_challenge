@@ -17,16 +17,16 @@ class pattern_norm(torch.nn.Module):
 
 class Hook():
     def __init__(self, module, backward=False):
-        print("init hook")
+        # print("init hook")
         self.module = module
         if backward == False:
-            print("registering module")
+            # print("registering module")
             self.hook = module.register_forward_hook(self.hook_fn)
         else:
             self.hook = module.register_backward_hook(self.hook_fn)
 
     def hook_fn(self, module, input, output):
-        print("hook fn")
+        # print("hook fn")
         self.input = input
         self.output = output
 
@@ -74,7 +74,17 @@ def abs_parallel(gram, target_labels, bias_labels):
                     continue
 
                 other_bias_mask = (bias_labels == other_bias_class).type(torch.float).unsqueeze(dim=1)
-                mask = torch.tril(torch.mm(class_mask*bias_mask, torch.transpose(class_mask*other_bias_mask, 0, 1)), diagonal=-1)
+                # print("class_mask", class_mask)
+                # print("bias_mask", bias_mask)
+                # print("other_bias_mask", other_bias_mask)
+                # print("target_labels", target_labels)
+                transpose = torch.transpose(class_mask*other_bias_mask, 0, 1).squeeze()
+                class_bias = (class_mask*bias_mask).squeeze()
+                # print("class * bias", class_bias.shape)
+                # print("transpose", transpose.shape)
+                mm = torch.mm(class_bias, transpose)
+                # print("mm", mm)
+                mask = torch.tril(mm, diagonal=-1)
                 M = mask.sum()
                 M_tot += M
 

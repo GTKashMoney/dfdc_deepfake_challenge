@@ -263,12 +263,15 @@ def evaluate_val(args, data_val, bce_best, model, snapshot_name, current_epoch, 
 def validate(net, data_loader, prefix=""):
     probs = defaultdict(list)
     targets = defaultdict(list)
+    tags = defaultdict(list)
 
     with torch.no_grad():
         for sample in tqdm(data_loader):
             imgs = sample["image"].cuda()
             img_names = sample["img_name"]
             labels = sample["labels"].cuda().float()
+            skin_tags = sample["skin_tag"].cuda()
+            
             out = net(imgs)
             labels = labels.cpu().numpy()
             preds = torch.sigmoid(out).cpu().numpy()
@@ -276,26 +279,50 @@ def validate(net, data_loader, prefix=""):
                 video, img_id = img_names[i].split("/")
                 probs[video].append(preds[i].tolist())
                 targets[video].append(labels[i].tolist())
+                tags[video].append(skin_tags[i].tolist())
+
     data_x = []
     data_y = []
+    data_st = []
     for vid, score in probs.items():
         score = np.array(score)
         lbl = targets[vid]
+        tag = skin_tags[vid]
 
         score = np.mean(score)
         lbl = np.mean(lbl)
+        tag = np.mean(tag)
         data_x.append(score)
         data_y.append(lbl)
+        data_st.append(tag)
+
     y = np.array(data_y)
     x = np.array(data_x)
-    fake_idx = y > 0.1
-    real_idx = y < 0.1
-    fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
-    real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
-    print("{}fake_loss".format(prefix), fake_loss)
-    print("{}real_loss".format(prefix), real_loss)
+    data_st = np.array(data_st)
 
-    return (fake_loss + real_loss) / 2, probs, targets
+    tags_classes = np.unique(data_st)
+    tags_dict = {i: 0 for i in tags_classes}
+
+    for k in tags_classes:
+
+        tag_idx = data_st == k
+        fake_idx = np.logical_and(y > 0.1, tag_idx)
+        real_idx = np.logical_and(y < 0.1, tag_idx)
+
+        fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
+        real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
+        print("{}fake_loss".format(prefix), fake_loss)
+        print("{}real_loss".format(prefix), real_loss)
+
+        tags_dict[k] = (fake_loss + real_loss) / 2
+
+    # Max Loss - Min Loss
+    max_loss = max(list(tags_dict.values()))
+    min_loss = min(list(tags_dict.values()))
+    print(f"Max Loss: {max_loss}, Min Loss: {min_loss}")
+    net_loss = max_loss - min_loss
+
+    return net_loss, probs, targets
 
 
 def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, train_data_loader, summary_writer, conf,

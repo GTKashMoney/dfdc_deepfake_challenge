@@ -29,7 +29,7 @@
     "end": {
         "alpha": 0.3,
         "beta": 0.65,
-        "end_weight": 1.5
+        "end_weight": 2
     },
     "load_pretrained": {
         "load": true,

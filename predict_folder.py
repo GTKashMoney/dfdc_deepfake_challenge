@@ -6,13 +6,15 @@ import time
 import torch
 import pandas as pd
 from kernel_utils import VideoReader, FaceExtractor, confident_strategy, predict_on_video_set
-from training.zoo.classifiers import DeepFakeClassifier
+# from training.zoo.classifiers import DeepFakeClassifier
+from training.zoo import classifiers
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Predict test videos")
     arg = parser.add_argument
     arg('--weights-dir', type=str, default="weights", help="path to directory with checkpoints")
     arg('--models', nargs='+', required=True, help="checkpoint files")
+    arg('--network', type=str, required=True, help="the classifier network used")
     arg('--test-dir', type=str, required=True, help="path to directory with videos")
     arg('--output', type=str, required=False, help="path to output csv", default="submission.csv")
     args = parser.parse_args()
@@ -20,7 +22,8 @@ if __name__ == '__main__':
     models = []
     model_paths = [os.path.join(args.weights_dir, model) for model in args.models]
     for path in model_paths:
-        model = DeepFakeClassifier(encoder="tf_efficientnet_b7_ns").to("cuda")
+        model = classifiers.__dict__[args.network](encoder='tf_efficientnet_b7_ns').to("cuda")
+        # model = DeepFakeClassifier(encoder="tf_efficientnet_b7_ns").to("cuda")
         print("loading state dict {}".format(path))
         checkpoint = torch.load(path, map_location="cpu")
         state_dict = checkpoint.get("state_dict", checkpoint)

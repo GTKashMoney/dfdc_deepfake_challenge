@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y libglib2.0-0 libsm6 libxrender-dev libx
  && rm -rf /var/lib/apt/lists/*
 
 # Install cython
-RUN conda install cython -y && conda clean --all
+RUN conda install cython -y && conda clean --all -y
 
 # Installing APEX
 RUN pip install -U pip

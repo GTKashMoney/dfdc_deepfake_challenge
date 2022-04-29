@@ -189,7 +189,11 @@ def main():
     else:
         model = DataParallel(model).cuda()
     data_val.reset(1, args.seed)
-    max_epochs = conf['optimizer']['schedule']['epochs']
+    kill_early = conf['optimizer']['schedule'].get('kill_early', None)
+    if kill_early is not None:
+        max_epochs = int(kill_early)
+    else:
+        max_epochs = conf['optimizer']['schedule']['epochs']
     for epoch in range(start_epoch, max_epochs):
         data_train.reset(epoch, args.seed)
         train_sampler = None
@@ -319,8 +323,8 @@ def validate(net, data_loader, prefix=""):
             fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
         if np.any(real_idx):
             real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
-        # print("{}fake_loss".format(prefix), fake_loss)
-        # print("{}real_loss".format(prefix), real_loss)
+        print("{}type{}_fake_loss".format(prefix, k), fake_loss)
+        print("{}type{}_real_loss".format(prefix, k), real_loss)
 
         loss = np.array([real_loss, fake_loss])
         tags_dict[k] = np.nanmean(loss)
@@ -390,7 +394,7 @@ def train_epoch(current_epoch, loss_functions, model, optimizer, scheduler, trai
             # print("skin tag", skin_tag)
             end_abs = abs_regu(hook, labels, skin_tag, alpha, beta)
 
-            loss += end_abs
+            loss += conf["end"].get("end_weight", 1) * end_abs
             end_losses.update(end_abs.item(), imgs.size(0))
 
         losses.update(loss.item(), imgs.size(0))

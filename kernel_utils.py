@@ -7,6 +7,7 @@ from PIL import Image
 from albumentations.augmentations.functional import image_compression
 from facenet_pytorch.models.mtcnn import MTCNN
 from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
 from torchvision.transforms import Normalize
 
@@ -354,6 +355,5 @@ def predict_on_video_set(face_extractor, videos, input_size, num_workers, test_d
         return y_pred
 
     with ThreadPoolExecutor(max_workers=num_workers) as ex:
-        predictions = ex.map(process_file, range(len(videos)))
-    return list(predictions)
-
+        predictions = list(tqdm(ex.map(process_file, range(len(videos))), total=len(videos)))
+    return predictions

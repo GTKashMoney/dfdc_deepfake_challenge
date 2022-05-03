@@ -21,4 +21,22 @@ python -u -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
  --opt-level O1 --label-smoothing 0.01 --resume $ROOT_DIR/weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23 \
  --folds-csv $ROOT_DIR/folds.csv  --fold 0 --seed 999 --from-zero \
  --output-dir $ROOT_DIR/weights/$RUN_NAME/ --data-dir $ROOT_DIR \
- --logdir $ROOT_DIR/logs/$RUN_NAME/ --prefix ${RUN_NAME}_ > logs/$RUN_NAME
+ --logdir $ROOT_DIR/logs/$RUN_NAME/ --prefix ${RUN_NAME}_ > $ROOT_DIR/logs/${RUN_NAME}.txt
+
+RUN_NAME="end2"
+python -u -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
+ --master_port 9901 training/pipelines/train_classifier.py --distributed \
+ --config configs/simple_end_b7_2.json --freeze-epochs 0 --test_every 1 \
+ --opt-level O1 --label-smoothing 0.01 --resume $ROOT_DIR/weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23 \
+ --folds-csv $ROOT_DIR/folds.csv  --fold 0 --seed 999 --from-zero \
+ --output-dir $ROOT_DIR/weights/$RUN_NAME/ --data-dir $ROOT_DIR \
+ --logdir $ROOT_DIR/logs/$RUN_NAME/ --prefix ${RUN_NAME}_ > $ROOT_DIR/logs/${RUN_NAME}.txt
+
+RUN_NAME="end3"
+python -u -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
+ --master_port 9901 training/pipelines/train_classifier.py --distributed \
+ --config configs/simple_end_b7_3.json --freeze-epochs 0 --test_every 1 \
+ --opt-level O1 --label-smoothing 0.01 --resume $ROOT_DIR/weights/final_999_DeepFakeClassifier_tf_efficientnet_b7_ns_0_23 \
+ --folds-csv $ROOT_DIR/folds.csv  --fold 0 --seed 999 --from-zero \
+ --output-dir $ROOT_DIR/weights/$RUN_NAME/ --data-dir $ROOT_DIR \
+ --logdir $ROOT_DIR/logs/$RUN_NAME/ --prefix ${RUN_NAME}_ > $ROOT_DIR/logs/${RUN_NAME}.txt

@@ -323,8 +323,8 @@ def validate(net, data_loader, prefix=""):
             fake_loss = log_loss(y[fake_idx], x[fake_idx], labels=[0, 1])
         if np.any(real_idx):
             real_loss = log_loss(y[real_idx], x[real_idx], labels=[0, 1])
-        print("{}type{}_fake_loss".format(prefix, k), fake_loss)
-        print("{}type{}_real_loss".format(prefix, k), real_loss)
+        print("{}type{}_fake_loss".format(prefix, int(k)), fake_loss)
+        print("{}type{}_real_loss".format(prefix, int(k)), real_loss)
 
         loss = np.array([real_loss, fake_loss])
         tags_dict[k] = np.nanmean(loss)

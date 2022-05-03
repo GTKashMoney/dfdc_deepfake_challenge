@@ -5,6 +5,74 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+def parse_losses(logs):
+    real_losses = {str(int(i)+1): [] for i in range(6)}
+    fake_losses = {str(int(i)+1): [] for i in range(6)}
+    for log in logs:
+        log = log.replace('.0_','_')
+        if 'type' in log and 'loss' in log:
+            if 'fake_loss' in log:
+                fk_loss = float(log.split(' ')[-1].replace('\n', ''))
+                fake_losses[log.split('_')[0][-1]].append(fk_loss)
+        
+            if 'real_loss' in log:
+                rl_loss = float(log.split(' ')[-1].replace('\n', ''))
+                real_losses[log.split('_')[0][-1]].append(rl_loss)
+                
+    return real_losses, fake_losses
+
+
+def get_std(real_losses, fake_losses):
+    real_arr = np.nan_to_num(np.array(list(real_losses.values())), 0)
+    fake_arr = np.nan_to_num(np.array(list(fake_losses.values())), 0)
+    return np.nanstd((real_arr + fake_arr) / 2, axis=0)
+
+
+def get_mean(real_losses, fake_losses):
+    real_arr = np.nan_to_num(np.array(list(real_losses.values())), 0)
+    fake_arr = np.nan_to_num(np.array(list(fake_losses.values())), 0)
+    return np.nanmean((real_arr + fake_arr) / 2, axis=0)
+
+
+def get_max(real_losses, fake_losses):
+    real_arr = np.nan_to_num(np.array(list(real_losses.values())), 0)
+    fake_arr = np.nan_to_num(np.array(list(fake_losses.values())), 0)
+    return np.max((real_arr + fake_arr) / 2, axis=0)
+
+
+def get_min(real_losses, fake_losses):
+    real_arr = np.nan_to_num(np.array(list(real_losses.values())), 0)
+    fake_arr = np.nan_to_num(np.array(list(fake_losses.values())), 0)
+    return np.max((real_arr + fake_arr) / 2, axis=0)
+
+
+def compare_loss(file_names: list, metric: str = 'std'):
+    
+    for filename in file_names:
+        with open(f'logs/{filename}.txt') as f:
+            logs = f.readlines()
+        
+        real_losses, fake_losses = parse_losses(logs)
+        
+        if metric == 'std':
+            y = get_std(real_losses, fake_losses)
+        elif metric == 'mean':
+            y = get_mean(real_losses, fake_losses)
+        elif metric == 'min':
+            y = get_min(real_losses, fake_losses)
+        elif metric == 'max':
+            y = get_max(real_losses, fake_losses)
+        
+        plt.plot(list([i + 1 for i in range(len(y))]), y, label=filename)
+    
+    plt.legend()
+    plt.ylabel(f'{metric} of Loss Across Skin Tags')
+    plt.xlabel('Epoch')
+    plt.title(f'Validation: {metric} loss')
+    
+    return plt
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Plot losses from log")
